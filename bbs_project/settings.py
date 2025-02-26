@@ -16,7 +16,12 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-@#104$8e1^ozti
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
 # ALLOWED_HOSTS を環境変数から取得（カンマ区切りで指定）
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "bbs-project.onrender.com").split(",")
+ALLOWED_HOSTS = [
+    "bbs-project.onrender.com",
+    "www.bbs-project.onrender.com",
+    "127.0.0.1",
+    "localhost"
+]
 
 AUTH_USER_MODEL = "board.CustomUser"
 
@@ -35,6 +40,10 @@ CHANNEL_LAYERS = {
 CSRF_COOKIE_SECURE = False  # HTTPS でない場合は False にする
 SESSION_COOKIE_SECURE = False  # これも False にする
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://bbs-project.onrender.com",  # Render のドメイン
+    "https://www.bbs-project.onrender.com"
+]
 
 # メディアファイルの保存先
 MEDIA_URL = "/media/"

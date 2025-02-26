@@ -23,6 +23,8 @@ ALLOWED_HOSTS = [
     "localhost"
 ]
 
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 AUTH_USER_MODEL = "board.CustomUser"
 
 LOGOUT_REDIRECT_URL = "/login/"

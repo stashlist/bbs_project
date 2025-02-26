@@ -154,8 +154,10 @@
         const threadId = "{{ thread.id }}";
         const currentUserId = "{{ user.id }}";  // **ログインユーザーのID**
         const ignoredUsers = JSON.parse('{{ ignored_users|safe }}');
+
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
         const chatSocket = new WebSocket(
-            "ws://" + window.location.host + "/ws/thread/" + threadId + "/"
+            `${protocol}://${window.location.host}/ws/thread/${threadId}/`
         );
     
         chatSocket.onopen = function () {

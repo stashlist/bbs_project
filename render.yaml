@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: bbs-project
+    env: python
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py migrate  # ✅ デプロイ時にマイグレーションを実行
+    startCommand: gunicorn bbs_project.wsgi:application

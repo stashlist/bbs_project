@@ -299,3 +299,10 @@ def add_reply(request, thread_id, post_id):
             Post.objects.create(thread=thread, user=request.user, content=content, parent_post=parent_post)
 
     return redirect("thread_detail", thread_id=thread_id)
+
+from django.core.management import call_command
+from django.http import HttpResponse
+
+def run_migrations(request):
+    call_command("migrate")
+    return HttpResponse("Migrations completed!")

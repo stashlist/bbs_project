@@ -3,6 +3,7 @@ from django.contrib.auth import views as auth_views
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import run_migrations
 
 urlpatterns = [
     path("signup/", views.signup, name="signup"),
@@ -29,6 +30,7 @@ urlpatterns = [
     path("kept_threads/", views.kept_threads, name="kept_threads"),
     path("thread/<int:thread_id>/keep/", views.toggle_keep_thread, name="toggle_keep_thread"),
     path("thread/<int:thread_id>/reply/<int:post_id>/", views.add_reply, name="add_reply"),  # ✅ 追加
+    path("run-migrations/", run_migrations),
 ]
 
 if settings.DEBUG:

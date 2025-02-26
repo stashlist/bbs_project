@@ -1,0 +1,25 @@
+{% extends "board/base.html" %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-gray-900">キープリスト</h2>
+
+<!-- キープしたスレッド一覧 -->
+<ul class="mt-6 bg-white p-6 rounded-lg shadow-md">
+    {% for thread in kept_threads %}
+        <li class="p-4 border-b border-gray-300 flex justify-between items-center">
+            <a href="{% url 'thread_detail' thread.id %}" class="text-blue-500">{{ thread.title }}</a>
+            <form method="POST" action="{% url 'toggle_keep_thread' thread.id %}">
+                {% csrf_token %}
+                <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                    キープ解除
+                </button>
+            </form>
+        </li>
+    {% empty %}
+        <p class="text-gray-500">キープしているスレッドはありません。</p>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'profile' %}" class="text-blue-500 mt-4 inline-block">プロフィールに戻る</a>
+
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "board/base.html" %}
+
+{% block content %}
+
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li class="{% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<h2 class="text-2xl font-bold text-gray-900">スレッド一覧</h2>
+
+<!-- フィルター用フォーム -->
+<form method="GET" action="{% url 'thread_list' %}" class="bg-white p-6 rounded-lg shadow-md space-y-4">
+    <h3 class="text-xl font-bold text-gray-900">🔍 スレッド検索</h3>
+
+    <!-- タイトル検索 -->
+    <div>
+        <label for="title" class="block font-medium text-gray-700">タイトル:</label>
+        <input type="text" name="title" id="title" value="{{ request.GET.title|default_if_none:'' }}"
+            class="border border-gray-300 rounded p-2 w-full focus:ring focus:ring-blue-200 outline-none">
+    </div>
+
+    <!-- タグ検索 -->
+    <div>
+        <label for="tags" class="block font-medium text-gray-700">タグ:</label>
+        <input type="text" name="tags" id="tags" value="{{ request.GET.tags|default_if_none:'' }}"
+            class="border border-gray-300 rounded p-2 w-full focus:ring focus:ring-blue-200 outline-none">
+    </div>
+
+    <!-- チェックボックス -->
+    <div class="flex flex-col space-y-2">
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" name="followed_only" class="w-5 h-5 accent-blue-500"
+                {% if request.GET.followed_only == "on" %}checked{% endif %}>
+            <span class="text-gray-700">フォローしているユーザーのスレッド</span>
+        </label>
+
+        <label class="flex items-center space-x-2">
+            <input type="checkbox" name="my_posts_only" class="w-5 h-5 accent-blue-500"
+                {% if request.GET.my_posts_only == "on" %}checked{% endif %}>
+            <span class="text-gray-700">自分がレスを付けたスレッド</span>
+        </label>
+    </div>
+
+    <!-- フィルターボタン -->
+    <button type="submit"
+        class="w-full mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+        🔍 フィルターを適用
+    </button>
+</form>
+
+
+<!-- スレッド作成ボタン -->
+{% if user.is_authenticated %}
+    <a href="{% url 'create_thread' %}"
+       class="bg-green-500 text-white font-bold px-5 py-3 rounded-lg shadow-md hover:bg-green-600 transition block w-full text-center mt-4">
+        ➕ スレッドを作成
+    </a>
+{% else %}
+    <a href="{% url 'login' %}?next={% url 'create_thread' %}"
+       class="text-blue-500 font-medium text-center block mt-4">
+        ➕ スレッドを作成（ログインが必要）
+    </a>
+{% endif %}
+
+<!-- スレッド一覧 -->
+<div class="mt-6 space-y-4">
+    {% for thread in threads %}
+        {% if thread.is_ignored %}
+            <div class="p-4 bg-gray-200 text-gray-500 rounded-lg shadow-md">
+                このスレッドは非表示の対象です。
+            </div>
+        {% else %}
+            <div class="p-4 bg-white border border-gray-300 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
+                 onclick="location.href='{% url 'thread_detail' thread.id %}'">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-blue-600">
+                        {{ thread.title }}
+                        <span class="text-gray-500 text-sm">({{ thread.post_count }}件)</span>
+                    </h3>
+                    <span class="text-gray-500 text-sm">{{ thread.created_at }}</span>
+                </div>
+                <!-- タグの表示 -->
+                <div class="flex flex-wrap mt-2">
+                    {% for tag in thread.tags.all %}
+                        <span class="bg-gray-200 text-gray-700 text-xs font-medium px-2 py-1 rounded mr-2">
+                            #{{ tag.name }}
+                        </span>
+                    {% empty %}
+                        <span class="text-gray-400 text-xs">タグなし</span>
+                    {% endfor %}
+                </div>
+
+            </div>
+        {% endif %}
+    {% empty %}
+        <p class="text-gray-500 text-center">🧐 該当するスレッドがありません。</p>
+    {% endfor %}
+</div>
+
+
+
+
+{% endblock %}

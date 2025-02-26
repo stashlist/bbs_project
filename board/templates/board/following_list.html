@@ -1,0 +1,25 @@
+{% extends "board/base.html" %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">フォローしている人</h2>
+
+<a href="{% url 'profile' %}" class="text-blue-500 mt-4 inline-block">← プロフィールページに戻る</a>
+
+<ul class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mt-4">
+    {% for follow in following %}
+        <li class="flex items-center justify-between p-2 border-b border-gray-300 dark:border-gray-600">
+            <div class="flex items-center space-x-4">
+                <img src="{{ follow.followed.get_profile_image }}" alt="プロフィール画像" class="w-10 h-10 rounded-full">
+                <strong class="text-gray-900 dark:text-gray-100">{{ follow.followed.username }}</strong>
+            </div>
+            <form method="POST" action="{% url 'unfollow_user' follow.followed.id %}">
+                {% csrf_token %}
+                <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">フォロー解除</button>
+            </form>
+        </li>
+    {% empty %}
+        <p class="text-gray-500 dark:text-gray-400">誰もフォローしていません。</p>
+    {% endfor %}
+</ul>
+
+{% endblock %}

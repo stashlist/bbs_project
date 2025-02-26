@@ -1,0 +1,80 @@
+{% extends "board/base.html" %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-900 text-center mb-6">スレッドを作成</h2>
+
+<div class="max-w-2xl mx-auto bg-white dark:bg-gray-200 p-6 rounded-lg shadow-md">
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        
+        <div>
+            <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-700">
+                タイトル
+            </label>
+            {{ form.title }}
+        </div>
+
+        <div>
+            <label for="{{ form.tags.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-700">
+                タグ
+            </label>
+            <div id="tag-buttons" class="flex flex-wrap gap-2 mt-2">
+                {% for tag in form.tags.field.queryset %}
+                    <button type="button" 
+                            class="tag-button bg-gray-300 text-gray-700 px-3 py-1 rounded border hover:bg-blue-400 hover:text-white transition"
+                            data-tag-id="{{ tag.id }}">
+                        {{ tag.name }}
+                    </button>
+                {% endfor %}
+            </div>
+            <!-- 選択されたタグを保存する hidden input -->
+            <input type="hidden" id="selected-tag-input" name="{{ form.tags.name }}" value="">
+        </div>
+
+        <div>
+            <label for="{{ form.first_post_content.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-700">
+                最初の投稿
+            </label>
+            {{ form.first_post_content }}
+        </div>
+
+        <button type="submit" class="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition">
+            作成
+        </button>
+    </form>
+</div>
+
+<div class="text-center mt-6">
+    <a href="{% url 'thread_list' %}" class="text-blue-500 hover:underline">スレッド一覧へ戻る</a>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const tagButtons = document.querySelectorAll(".tag-button");
+        const selectedTagInput = document.getElementById("selected-tag-input");
+
+        tagButtons.forEach(button => {
+            button.addEventListener("click", function () {
+                console.log("ボタンがクリックされました:", this.innerText);
+
+                // すでに選択されているボタンのスタイルを元に戻す
+                tagButtons.forEach(btn => {
+                    btn.classList.remove("bg-blue-500", "text-white");
+                    btn.classList.add("bg-gray-300", "text-gray-700");
+                });
+
+                // 選択されたボタンのスタイルを変更
+                this.classList.remove("bg-gray-300", "text-gray-700");
+                this.classList.add("bg-blue-500", "text-white");
+
+                // hidden input に選択されたタグのIDを保存
+                selectedTagInput.value = this.getAttribute("data-tag-id");
+
+                console.log("選択されたタグID:", selectedTagInput.value);
+            });
+        });
+    });
+</script>
+
+{% endblock %}
+

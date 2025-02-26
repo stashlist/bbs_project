@@ -1,0 +1,17 @@
+{% extends "board/base.html" %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">プロフィール編集</h2>
+
+<!-- 現在のプロフィール画像 -->
+<img src="{{ user.get_profile_image }}" alt="プロフィール画像" class="w-24 h-24 rounded-full border shadow-md">
+
+<form method="POST" enctype="multipart/form-data" class="bg-white dark:bg-gray-200 p-6 rounded-lg shadow-md">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">変更を保存</button>
+</form>
+
+<a href="{% url 'profile' %}" class="text-blue-500 mt-4 inline-block">← プロフィールに戻る</a>
+
+{% endblock %}

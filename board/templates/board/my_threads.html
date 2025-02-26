@@ -1,0 +1,19 @@
+{% extends "board/base.html" %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">立てたスレッド一覧</h2>
+
+<a href="{% url 'profile' %}" class="text-blue-500 mt-4 inline-block">← プロフィールページに戻る</a>
+
+<ul class="bg-white dark:bg-gray-200 p-6 rounded-lg shadow-md mt-4">
+    {% for thread in threads %}
+        <li class="p-2 border-b border-gray-300 dark:border-gray-600">
+            <a href="{% url 'thread_detail' thread.id %}" class="text-blue-500">{{ thread.title }}</a> 
+            <span class="text-gray-500 dark:text-gray-400">({{ thread.created_at }})</span>
+        </li>
+    {% empty %}
+        <p class="text-gray-500 dark:text-gray-400">まだスレッドを作成していません。</p>
+    {% endfor %}
+</ul>
+
+{% endblock %}

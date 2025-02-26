@@ -49,3 +49,19 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = CustomUser
         fields = ["avatar"]  # ユーザーが変更可能なフィールド
+
+
+class SignupForm(UserCreationForm):
+    email = forms.EmailField(label="メールアドレス", required=True)
+    username = forms.CharField(label="ユーザー名", max_length=50, required=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ("user_id", "email", "username", "password1", "password2")
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.is_verified = False  # 仮登録状態
+        if commit:
+            user.save()
+        return user

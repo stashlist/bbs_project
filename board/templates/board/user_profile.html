@@ -1,28 +1,33 @@
 {% extends "board/base.html" %}
 
 {% block content %}
-<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">プロフィール</h2>
 
-<!-- プロフィール画像 -->
-<img src="{{ profile_user.get_profile_image }}" alt="プロフィール画像" class="w-24 h-24 rounded-full border shadow-md">
+<!-- スレッド一覧へ戻るボタン -->
+<div class="mb-6">
+    <a href="{% url 'thread_list' %}" class="text-gray-800 font-semibold hover:text-gray-900 dark:text-gray-700 dark:hover:text-gray-400">
+        ← スレッド一覧へ戻る
+    </a>
+</div>
 
-<p class="mt-4">ユーザー名: <strong>{{ profile_user.username }}</strong></p>
+<!-- プロフィール -->
+<div class="flex flex-col items-center">
+    <!-- プロフィール画像 -->
+    <img src="{{ profile_user.get_profile_image }}" alt="プロフィール画像" class="w-24 h-24 rounded-full border shadow-md">
 
-<!-- フォローボタン -->
-{% if request.user.is_authenticated and request.user != profile_user %}
-    {% if is_following %}
-        <form method="POST" action="{% url 'unfollow_user' profile_user.id %}" class="mt-4">
-            {% csrf_token %}
-            <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">フォロー解除</button>
-        </form>
-    {% else %}
+    <!-- ユーザー名 -->
+    <p class="mt-4 text-lg font-medium text-gray-900 dark:text-gray-900">{{ profile_user.username }}</p>
+
+    <!-- フォローボタン -->
+    {% if request.user.is_authenticated and request.user != profile_user %}
         <form method="POST" action="{% url 'follow_user' profile_user.id %}" class="mt-4">
             {% csrf_token %}
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">フォロー</button>
+            <button type="submit" 
+                class="w-64 text-center px-4 py-2 rounded-lg shadow-md transition 
+                {% if is_following %} bg-red-500 text-white hover:bg-red-600 {% else %} bg-blue-500 text-white hover:bg-blue-600 {% endif %}">
+                {% if is_following %}フォロー解除{% else %}フォロー{% endif %}
+            </button>
         </form>
     {% endif %}
-{% endif %}
-
-<a href="{% url 'thread_list' %}" class="text-blue-500 mt-4 inline-block">スレッド一覧へ戻る</a>
+</div>
 
 {% endblock %}

@@ -1,0 +1,32 @@
+{% extends "board/base.html" %}
+
+{% block content %}
+<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">メール認証</h2>
+
+{% if messages %}
+    {% for message in messages %}
+        <p class="text-red-500">{{ message }}</p>
+    {% endfor %}
+{% endif %}
+
+<form method="post" class="bg-white dark:bg-gray-200 p-6 rounded-lg shadow-md">
+    {% csrf_token %}
+    
+    <label for="verification_code" class="block text-sm font-medium text-gray-700 dark:text-gray-700">
+        認証コード（5桁）
+    </label>
+    
+    <input type="text" name="verification_code" id="verification_code" 
+           class="border p-2 rounded w-20 text-center text-xl tracking-widest" 
+           pattern="\d{5}" maxlength="5" required>
+
+    <button type="submit" class="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+        認証
+    </button>
+</form>
+
+<p class="mt-4">
+    <a href="{% url 'resend_verification_code' user.id %}" class="text-blue-500">認証コードを再送信</a>
+</p>
+
+{% endblock %}

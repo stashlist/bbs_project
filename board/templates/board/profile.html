@@ -12,7 +12,9 @@
 <!-- プロフィール画像 -->
 <div class="flex flex-col items-center my-4">
     <img src="{{ user.get_profile_image }}" alt="プロフィール画像" class="w-24 h-24 rounded-full border shadow-md">
-    <p class="text-lg font-medium mt-2 text-gray-900 dark:text-gray-100">こんにちは、<strong>{{ user.username }}</strong> さん！</p>
+    
+    <!-- ✅ ユーザーネームをプロフィール画像の下に表示 -->
+    <p class="text-xl font-semibold mt-2 text-gray-900 dark:text-gray-900">{{ user.username }}</p>
 </div>
 
 <!-- プロフィール編集ボタン -->
@@ -30,25 +32,28 @@
     <a href="{% url 'my_posts' %}" class="text-blue-600 dark:text-blue-400 font-semibold"><strong>{{ posts_count }}</strong> 投稿したポスト</a>
 </div>
 
-<!-- キープリストページへのリンク -->
-<div class="text-center mb-4">
-    <a href="{% url 'kept_threads' %}" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+<!-- リストボタンエリア -->
+<div class="flex flex-col items-center space-y-3 mt-6">
+    
+    <!-- キープリストページへのリンク -->
+    <a href="{% url 'kept_threads' %}" class="w-64 text-center bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 shadow-md transition">
         キープリスト
     </a>
-</div>
 
+    <!-- 無視リストページへのリンク -->
+    <a href="{% url 'ignored_users_list' %}" class="w-64 text-center bg-gray-800 text-white py-2 px-4 rounded-lg hover:bg-gray-900 shadow-md transition">
+        無視リスト
+    </a>
 
-<!-- 無視リストページへのリンク -->
-<div class="text-center mb-4">
-    <a href="{% url 'ignored_users_list' %}" class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 shadow-md">無視リスト</a>
-</div>
-
-<!-- ログアウトボタン -->
-<div class="text-center">
-    <form method="post" action="{% url 'logout' %}">
+    <!-- ログアウトボタン -->
+    <form method="post" action="{% url 'logout' %}" class="w-64">
         {% csrf_token %}
-        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 shadow-md">ログアウト</button>
+        <button type="submit" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 shadow-md transition">
+            ログアウト
+        </button>
     </form>
+
 </div>
+
 
 {% endblock %}

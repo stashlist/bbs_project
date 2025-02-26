@@ -8,6 +8,7 @@ import uuid
 import os
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.dispatch import receiver
+from asgiref.sync import sync_to_async
 
 def get_random_default_avatar():
     """media/default/ 内の .svg ファイルからランダムにデフォルト画像を選択"""
@@ -38,16 +39,22 @@ class CustomUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+
+
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     user_id = models.CharField(max_length=50, unique=True)
     username = models.CharField(max_length=50)
     email = models.EmailField(unique=True)
-    avatar = models.ImageField(upload_to=avatar_upload_path, blank=True, null=True)  # ユーザーがアップロードした画像
-    default_avatar = models.CharField(max_length=255, blank=True, null=True)  # デフォルト画像のパス
+    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    default_avatar = models.CharField(max_length=255, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     kept_threads = models.ManyToManyField("Thread", related_name="kept_by", blank=True)
+
+    # メール認証用のフィールド
+    is_verified = models.BooleanField(default=False)  # 仮登録フラグ
+    verification_code = models.CharField(max_length=5, blank=True, null=True)  # 5桁の認証コード
 
     objects = CustomUserManager()
 
@@ -60,7 +67,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             return f"{settings.MEDIA_URL}{self.avatar}"
         if self.default_avatar:
             return f"{settings.MEDIA_URL}{self.default_avatar}"
-        return f"{settings.MEDIA_URL}default/1f60a.svg"  # `.svg` がない場合のデフォルト
+        
+        # 1〜25 のランダムな番号を選んでデフォルト画像として使用
+        random_number = random.randint(1, 25)
+        return f"{settings.MEDIA_URL}default/{random_number}.svg"
+
 
 class Tag(models.Model):
     """タグモデル"""
@@ -78,12 +89,21 @@ class Thread(models.Model):
     post_count = models.IntegerField(default=0)  # ✅ 新しく追加
 
 class Post(models.Model):
-    thread = models.ForeignKey(Thread, on_delete=models.CASCADE)
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    thread = models.ForeignKey(Thread, on_delete=models.CASCADE, related_name="posts")
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="posts")
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    parent_post = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE, related_name="replies")  # ✅ 追加
+    parent_post = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="replies")
     
+    # 追加: いいね機能
+    likes = models.ManyToManyField(CustomUser, related_name="liked_posts", blank=True)
+
+    def total_likes(self):
+        return self.likes.count()
+    
+    async def total_likes_async(self):
+        return await sync_to_async(self.likes.count)()
+
     
 # ✅ 投稿が追加されたら `post_count` を +1
 @receiver(post_save, sender=Post)
@@ -119,4 +139,10 @@ class Follow(models.Model):
         unique_together = ('follower', 'followed')  # 同じユーザーを複数回フォローできないようにする
 
 
-    
+class VerificationCode(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    code = models.CharField(max_length=5)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.email} - {self.code}"

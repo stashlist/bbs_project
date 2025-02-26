@@ -76,7 +76,14 @@
                                 data-post-id="{{ post.id }}">💬 返信</button>
                         {% endif %}
                     </div>
-                
+                    <div>
+                        {% if user.is_authenticated %}
+                            <button class="like-btn text-gray-500 text-sm px-2 py-1 rounded hover:text-red-500"
+                                data-post-id="{{ post.id }}">
+                                ❤️ <span class="like-count">{{ post.total_likes }}</span>
+                            </button>
+                        {% endif %}
+                    </div>
                     <div class="flex items-center gap-4">
                         <!-- 無視ボタン -->
                         {% if user.is_authenticated and post.user != user %}
@@ -152,9 +159,9 @@
         });
     
         const threadId = "{{ thread.id }}";
-        const currentUserId = "{{ user.id }}";  // **ログインユーザーのID**
+        const currentUserId = "{{ user.id }}";  
         const ignoredUsers = JSON.parse('{{ ignored_users|safe }}');
-
+    
         const protocol = window.location.protocol === "https:" ? "wss" : "ws";
         const chatSocket = new WebSocket(
             `${protocol}://${window.location.host}/ws/thread/${threadId}/`
@@ -174,31 +181,24 @@
             if (ignoredUsers.includes(data.user_id)) {
                 messageContent = `<li class="text-gray-500">このポストは非表示の対象です。</li>`;
             } else {
-                // レス番号
-                const currentIndex = messageList.children.length + 1;  // **スレッド内のレス番号**
+                const currentIndex = messageList.children.length + 1;  
     
                 let threadIndexHtml = `<span class="text-gray-500 font-bold flex items-center justify-center w-10 h-10">
                             #${currentIndex}
                           </span>`;
-
-                // プロフィール画像
+    
                 let avatarHtml = `<img src="${data.avatar}" alt="プロフィール画像"
                                   class="w-10 h-10 rounded-full">`;
     
-                // ユーザー名 & レス内容
                 let usernameHtml = `<strong><a href="/profile/${data.user_id}/" class="text-blue-500">
                                       ${data.username}
                                     </a></strong>`;
                 
-                const formattedMessage = data.message.replace(/\n/g, "<br>");
-                
                 let contentHtml = `<p class="text-gray-700">${data.message.replace(/\n/g, "<br>")}</p>`;
     
-                // 日付 & 無視ボタン
                 let dateHtml = `<small class="text-gray-500">${data.created_at}</small>`;
                 let ignoreButtonHtml = "";
     
-                // **自分の投稿には無視ボタンを表示しない**
                 if (data.user_id !== parseInt(currentUserId, 10)) {
                     ignoreButtonHtml = `
                         <form method="POST" action="/ignore/${data.user_id}/">
@@ -210,41 +210,40 @@
                 }
                 
                 let replyIndicator = "";
-                if (data.parent_id) {
-                    replyIndicator = `<p class="text-gray-500 text-sm">>>${data.parent_id}</p>`;
+                if (data.parent_thread_index) {
+                    replyIndicator = `<p class="text-gray-500 text-sm">>>#${data.parent_thread_index}</p>`;
                 }
-
-                // **リプライボタン**
-                let replyButtonHtml = `<button class="text-blue-500 text-sm px-2 py-1 rounded hover:text-blue-600 reply-btn"
-                                        data-post-id="${data.id}">💬 返信</button>`;
-                
-                
-
-                // 投稿のHTML構造
+    
+                // **💖 いいねボタン追加**
+                let likeButtonHtml = `
+                    <button class="like-btn text-gray-500 text-sm px-2 py-1 rounded hover:text-red-500"
+                        data-post-id="${data.id}">
+                        ❤️ <span class="like-count">${data.total_likes}</span>
+                    </button>`;
+    
                 messageContent = `<li data-id="${data.id}" class="p-3 border-b border-gray-300 flex flex-col gap-1 pl-0">
                     <div class="flex items-center gap-2">
                         ${threadIndexHtml}
                         ${avatarHtml}
                         <div class="flex flex-col justify-center w-full ${data.parent_thread_index ? 'border-l-4 border-gray-400 pl-2' : ''}">
                             ${usernameHtml}
-                            ${data.parent_thread_index ? `<p class="text-gray-500 text-sm">>>#${data.parent_thread_index}</p>` : ""}
+                            ${replyIndicator}
                             ${contentHtml}
                         </div>
                     </div>
-
-                    <!-- ✅ 返信ボタン、無視ボタン、日付を横並びで配置 -->
+    
+                    <!-- ✅ 返信ボタン、いいねボタン、無視ボタン、日付を横並びで配置 -->
                     <div class="flex justify-between items-center mt-1">
-                        <!-- 左下に返信ボタン -->
                         <button class="text-blue-500 text-sm px-2 py-1 rounded hover:text-blue-600 reply-btn"
                             data-post-id="${data.id}">💬 返信</button>
+                        
                         <div class="flex items-center gap-4">
-                            <!-- 無視ボタン -->
+                            ${likeButtonHtml}  <!-- ❤️ いいねボタン -->
                             ${ignoreButtonHtml}
-                            <!-- 右下に日付時間 -->
                             ${dateHtml}
                         </div>
                     </div>
-
+    
                     <!-- ✅ リプライフォーム（デフォルト非表示） -->
                     <form method="POST" action="/thread/${threadId}/reply/${data.id}/" 
                         class="reply-form hidden ml-12 mt-2">
@@ -256,7 +255,6 @@
                         </button>
                     </form>
                   </li>`;
-
             }
     
             const newMessage = document.createElement("div");
@@ -264,6 +262,8 @@
             messageList.appendChild(newMessage.firstElementChild);
     
             messageList.scrollTop = messageList.scrollHeight;
+    
+            attachLikeButtonListeners();  // 新しいいいねボタンのイベントを適用
         };
     
         chatSocket.onclose = function () {
@@ -279,7 +279,6 @@
             const message = messageInput.value.trim();
     
             if (message !== "") {
-                console.log("🟢 メッセージ送信:", message);
                 chatSocket.send(JSON.stringify({
                     "message": message
                 }));
@@ -288,28 +287,36 @@
             messageInput.value = "";
         };
     
-        // 💬 返信フォームのトグル
-        document.addEventListener("click", function (event) {
-            if (event.target.classList.contains("reply-btn")) {
-                const postId = event.target.dataset.postId;
-                const replyForm = document.querySelector(`form[action*="/thread/${threadId}/reply/${postId}/"]`);
-                if (replyForm) {
-                    replyForm.classList.toggle("hidden");
-                }
-            }
-        });
+        function attachLikeButtonListeners() {
+            document.querySelectorAll(".like-btn").forEach(button => {
+                button.addEventListener("click", function () {
+                    const postId = this.dataset.postId;
+                    const likeCount = this.querySelector(".like-count");
     
-        // ▼ 返信表示・非表示の切り替え
-        document.querySelectorAll(".toggle-replies").forEach(button => {
-            button.addEventListener("click", function () {
-                const repliesList = this.nextElementSibling;
-                if (repliesList) {
-                    repliesList.classList.toggle("hidden");
-                    this.textContent = repliesList.classList.contains("hidden") ? "▼ 返信を表示" : "▲ 返信を隠す";
-                }
+                    fetch(`/post/${postId}/like/`, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": "{{ csrf_token }}",
+                            "Content-Type": "application/json"
+                        },
+                        credentials: "same-origin"
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        likeCount.textContent = data.total_likes;
+                        if (data.liked) {
+                            this.classList.add("text-red-500");
+                        } else {
+                            this.classList.remove("text-red-500");
+                        }
+                    });
+                });
             });
-        });
+        }
+    
+        attachLikeButtonListeners();
     });
+    
     
 </script>
 

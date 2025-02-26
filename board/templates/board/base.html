@@ -17,14 +17,17 @@
     
     <!-- ナビゲーションバー -->
     <nav class="p-4 bg-white shadow-md flex justify-between items-center">
-        <a href="/" class="text-xl font-bold">掲示板</a>
-        <div>
+        <!-- 掲示板アイコン -->
+        <a href="/" class="flex items-center">
+            <img src="/media/img/icon.svg" alt="掲示板アイコン" class="w-10 h-10">
+        </a>
+
+        <div class="flex items-center">
             {% if user.is_authenticated %}
-                <a href="{% url 'profile' %}" class="mr-4">プロフィール</a>
-                <form method="post" action="{% url 'logout' %}" class="inline">
-                    {% csrf_token %}
-                    <button type="submit" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">ログアウト</button>
-                </form>
+                <!-- プロフィール画像（ログアウトボタン統合） -->
+                <a href="{% url 'profile' %}">
+                    <img src="{{ user.get_profile_image }}" alt="プロフィール画像" class="w-10 h-10 rounded-full border shadow-md">
+                </a>
             {% else %}
                 <a href="{% url 'signup' %}" class="mr-4">新規登録</a>
                 <a href="{% url 'login' %}" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">ログイン</a>

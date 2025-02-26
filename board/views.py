@@ -1,31 +1,44 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, get_user_model
-from .forms import CustomUserCreationForm
+from django.contrib.auth import login, get_user_model, authenticate
+from .forms import CustomUserCreationForm, SignupForm, ThreadForm, PostForm, ProfileForm
 from django.contrib.auth.decorators import login_required
-from .forms import ThreadForm, PostForm, ProfileForm
-from .models import Thread, Post, Follow, User
+from .models import Thread, Post, Follow, User, IgnoredUsers, CustomUser, VerificationCode
 from django.http import HttpResponseForbidden
 from django.contrib import messages
-from .models import IgnoredUsers, User
 from django.db.models import Case, When, Value, BooleanField
 import json
+from .utils import send_verification_email, generate_verification_code
+import random  # これを追加
 
 
-# ユーザー登録（サインアップ）
-def signup(request):
+
+def login_view(request):
     if request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect("thread_list")
-        else:
-            # フォームエラーをコンソールに出力（デバッグ用）
-            print(form.errors)
-    else:
-        form = CustomUserCreationForm()
+        login_input = request.POST.get("login_input")  # メールまたはユーザーID
+        password = request.POST.get("password")
 
-    return render(request, "board/signup.html", {"form": form})
+        # メールアドレスとして検索
+        user = CustomUser.objects.filter(email=login_input).first()
+
+        # メールで見つからなければ user_id で検索
+        if not user:
+            user = CustomUser.objects.filter(user_id=login_input).first()
+
+        # 認証処理
+        if user and user.check_password(password):
+            if not user.is_active:  # 認証未完了（仮登録状態）
+                user.verification_code = generate_verification_code()  # 新しいコード生成
+                user.save()
+                send_verification_email(user.email, user.verification_code)
+                messages.info(request, "認証コードを送信しました。メールを確認してください。")
+                return redirect("verify_email", user_id=user.id)  # 認証ページへ
+            else:
+                login(request, user)
+                return redirect("thread_list")  # ログイン成功後のリダイレクト
+        else:
+            messages.error(request, "ログインに失敗しました。ユーザーID / メールアドレス または パスワードが正しくありません。")
+
+    return render(request, "board/login.html")
 
 # プロフィールページ（ログイン必須）
 @login_required
@@ -306,3 +319,100 @@ from django.http import HttpResponse
 def run_migrations(request):
     call_command("migrate")
     return HttpResponse("Migrations completed!")
+
+# ユーザー登録（サインアップ）
+def signup(request):
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.is_active = False  # 仮登録
+            user.verification_code = generate_verification_code()  # 認証コードを生成
+            user.save()
+
+            # メールで認証コードを送信
+            send_verification_email(user.email, user.verification_code)
+
+            # 認証コード入力ページへリダイレクト
+            return redirect("verify_email", user_id=user.id)
+    else:
+        form = CustomUserCreationForm()
+
+    return render(request, "board/signup.html", {"form": form})
+
+
+def verify_email(request, user_id):
+    user = CustomUser.objects.get(id=user_id)
+
+    if request.method == "POST":
+        entered_code = request.POST.get("verification_code")
+        if entered_code == user.verification_code:
+            user.is_active = True  # 認証成功
+            user.verification_code = None  # 認証コード削除
+            user.save()
+            messages.success(request, "認証が完了しました。ログインしてください。")
+            return redirect("login")
+        else:
+            messages.error(request, "認証コードが間違っています。")
+
+    return render(request, "board/code_auth.html", {"user": user})
+
+
+from django.contrib.auth import authenticate
+
+def code_auth(request):
+    if request.method == "POST":
+        email = request.POST.get("email")
+        code = request.POST.get("code")
+
+        try:
+            user = CustomUser.objects.get(email=email)
+            verification = VerificationCode.objects.filter(user=user, code=code).first()
+
+            if verification:
+                user.is_active = True  # 認証完了
+                user.save()
+                verification.delete()  # 認証コードを削除
+                login(request, user)
+                messages.success(request, "認証が完了しました。ログインしました。")
+                return redirect("thread_list")
+            else:
+                messages.error(request, "認証コードが無効です。")
+        except CustomUser.DoesNotExist:
+            messages.error(request, "ユーザーが見つかりません。")
+
+    return render(request, "board/code_auth.html")
+
+
+def resend_verification_code(request, user_id):
+    user = get_object_or_404(CustomUser, id=user_id)
+
+    # 新しい認証コードを生成して保存
+    new_code = user.generate_verification_code()
+    user.verification_code = new_code
+    user.save()
+
+    # 認証コードを送信
+    send_verification_email(user.email, new_code)
+
+    messages.success(request, "認証コードを再送信しました。メールを確認してください。")
+    return redirect("verify_email", user_id=user.id)
+
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import Post
+
+@login_required
+def toggle_like(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    user = request.user
+
+    if user in post.likes.all():
+        post.likes.remove(user)
+        liked = False
+    else:
+        post.likes.add(user)
+        liked = True
+
+    return JsonResponse({"liked": liked, "total_likes": post.total_likes()})

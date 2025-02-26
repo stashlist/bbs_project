@@ -3,12 +3,25 @@
 {% block content %}
 <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">ログイン</h2>
 
+<!-- メッセージ表示 -->
+{% if messages %}
+    {% for message in messages %}
+        <p class="text-red-500">{{ message }}</p>
+    {% endfor %}
+{% endif %}
+
 <form method="post" class="bg-white dark:bg-gray-200 p-6 rounded-lg shadow-md">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">ログイン</button>
+    <label for="login_input" class="block text-sm font-medium text-gray-700 dark:text-gray-700">ユーザーID または メールアドレス</label>
+    <input type="text" name="login_input" required class="border p-2 rounded w-full">
+    
+    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-700 mt-2">パスワード</label>
+    <input type="password" name="password" required class="border p-2 rounded w-full">
+    
+    <button type="submit" class="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">ログイン</button>
 </form>
 
-<a href="{% url 'signup' %}" class="text-blue-500 mt-4 inline-block">新規登録はこちら</a>
-
+<p class="mt-4">
+    <a href="{% url 'signup' %}" class="text-blue-500">新規登録はこちら</a>
+</p>
 {% endblock %}

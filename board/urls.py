@@ -7,7 +7,7 @@ from .views import run_migrations
 
 urlpatterns = [
     path("signup/", views.signup, name="signup"),
-    path("login/", auth_views.LoginView.as_view(template_name="board/login.html"), name="login"),
+    path("login/", views.login_view, name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),  # GETでもログアウトOK
     path("profile/", views.profile, name="profile"),
     path("create_thread/", views.create_thread, name="create_thread"),  # スレッド作成
@@ -31,6 +31,10 @@ urlpatterns = [
     path("thread/<int:thread_id>/keep/", views.toggle_keep_thread, name="toggle_keep_thread"),
     path("thread/<int:thread_id>/reply/<int:post_id>/", views.add_reply, name="add_reply"),  # ✅ 追加
     path("run-migrations/", run_migrations),
+    path("verify/<int:user_id>/", views.verify_email, name="verify_email"),
+    path("code_auth/", views.code_auth, name="code_auth"),
+    path("resend_verification_code/<int:user_id>/", views.resend_verification_code, name="resend_verification_code"),
+    path("post/<int:post_id>/like/", views.toggle_like, name="toggle_like"),
 ]
 
 if settings.DEBUG:

@@ -32,6 +32,10 @@ CHANNEL_LAYERS = {
     },
 }
 
+CSRF_COOKIE_SECURE = False  # HTTPS でない場合は False にする
+SESSION_COOKIE_SECURE = False  # これも False にする
+
+
 # メディアファイルの保存先
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")

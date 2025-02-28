@@ -1,4 +1,7 @@
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.views import APIView
+from rest_framework.renderers import JSONRenderer
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse

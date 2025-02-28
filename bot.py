@@ -25,6 +25,21 @@ def login():
         print("❌ ログイン失敗:", response.json())
 
 
+def create_post(thread_id, content):
+    """スレッドに投稿する"""
+    payload = {"content": content}
+    response = session.post(f"{BASE_URL}threads/{thread_id}/posts/", json=payload)
+
+    if response.status_code == 201:
+        post_id = response.json().get("id")
+        print(f"✅ 投稿成功: ID={post_id}")
+        return post_id
+    else:
+        print(f"❌ 投稿失敗: {response.status_code}, {response.json()}")
+        return None
+
+
+
 def create_thread(title, first_post, tag_id=None):
     """スレッドを作成する"""
     payload = {"title": title, "first_post": first_post}

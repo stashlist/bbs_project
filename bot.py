@@ -81,7 +81,7 @@ def get_posts():
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"❌ ポスト一覧取得失敗: {response.status_code}, {response.text}")
+            print(f"❌ ポスト一覧取得失敗:")
             return []
     except Exception as e:
         print(f"❌ ポスト一覧取得エラー: {e}")
@@ -95,11 +95,25 @@ def get_threads():
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"❌ スレッド一覧取得失敗: {response.status_code}, {response.text}")
+            print(f"❌ スレッド一覧取得失敗")
             return []
     except Exception as e:
         print(f"❌ スレッド一覧取得エラー: {e}")
         return []
+    
+def get_tags():
+    """タグ一覧を取得する"""
+    try:
+        response = session.get(f"{BASE_URL}tags/")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"❌ タグ一覧取得失敗:")
+            return []
+    except Exception as e:
+        print(f"❌ タグ一覧取得エラー: {e}")
+        return []
+
 
 
 # API呼び出し関数
@@ -147,27 +161,34 @@ def bot_action():
         # 🎯 いいね: 50%、ポスト: 30%、返信: 15%、スレッド作成: 5%
         action = random.choices(
             ["like_post", "create_post", "reply_post", "create_thread"],
-            weights=[50, 30, 15, 5]  # **行動割合を指定**
+            weights=[50, 30, 15, 5]
         )[0]
 
         if action == "create_thread":
+            print("📝 新しいスレッドを作成します。")
             thread_title = generate_text("掲示板で自然に見えるスレッドタイトルを1つ考えてください。")
             first_post = generate_text("スレッドの最初の投稿内容を考えてください。")
-            thread_id = create_thread(thread_title, first_post)
+
+            # ✅ **ランダムなタグを適用**
+            tag_id = random.choice(get_tags())["id"] if get_tags() else None
+
+            thread_id = create_thread(thread_title, first_post, tag_id)
             if thread_id:
-                time.sleep(5)  # **スレッド作成後、少し待つ**
+                time.sleep(5)
                 post_content = generate_text("スレッド作成後に最初の投稿を追加してください。")
                 create_post(thread_id, post_content)
 
-        elif action == "create_post":
-            existing_threads = get_threads()  # 修正：get_threads関数を使用
 
-            # **スレッドがない場合、新しく作成**
+        elif action == "create_post":
+            print("📝 既存のスレッドに投稿します。")
+            existing_threads = get_threads()
+
             if not existing_threads:
-                print("⚠️ スレッドがないため、新規スレッドを作成")
+                print("⚠️ スレッドがないため、新規スレッドを作成します。")
                 thread_title = generate_text("掲示板で自然に見えるスレッドタイトルを1つ考えてください。")
                 first_post = generate_text("スレッドの最初の投稿内容を考えてください。")
-                thread_id = create_thread(thread_title, first_post)
+                tag_id = random.choice(get_tags())["id"] if get_tags() else None
+                thread_id = create_thread(thread_title, first_post, tag_id)
                 time.sleep(5)
                 create_post(thread_id, first_post)
             else:
@@ -176,16 +197,18 @@ def bot_action():
                 create_post(thread_id, post_content)
 
         elif action == "reply_post":
-            existing_posts = get_posts()  # 修正：get_posts関数を使用
+            print("💬 既存の投稿に返信します。")
+            existing_posts = get_posts()
 
             if not existing_posts:
-                print("⚠️ ポストがないため、新規投稿を作成")
-                existing_threads = get_threads()  # 修正：get_threads関数を使用
+                print("⚠️ ポストがないため、新規投稿を作成します。")
+                existing_threads = get_threads()
                 if not existing_threads:
-                    print("⚠️ スレッドもないため、新規スレッドを作成")
+                    print("⚠️ スレッドもないため、新規スレッドを作成します。")
                     thread_title = generate_text("掲示板で自然に見えるスレッドタイトルを1つ考えてください。")
                     first_post = generate_text("スレッドの最初の投稿内容を考えてください。")
-                    thread_id = create_thread(thread_title, first_post)
+                    tag_id = random.choice(get_tags())["id"] if get_tags() else None
+                    thread_id = create_thread(thread_title, first_post, tag_id)
                     time.sleep(5)
                     create_post(thread_id, first_post)
                 else:
@@ -201,27 +224,22 @@ def bot_action():
                         reply_content = generate_text(f"「{post['content']}」に対する自然な返信を考えてください。")
                         reply_to_post(thread_id, post_id, reply_content)
                     else:
-                        print("⚠️ ポストデータに必要なフィールドがありません")
-                        # フォールバック：スレッドを取得して新規投稿
-                        existing_threads = get_threads()
-                        if existing_threads:
-                            thread_id = random.choice(existing_threads)["id"]
-                            post_content = generate_text("掲示板の流れに自然な投稿を1つ考えてください。")
-                            create_post(thread_id, post_content)
+                        print("⚠️ ポストデータに必要なフィールドがありません。")
                 except (IndexError, KeyError) as e:
                     print(f"⚠️ ポストデータ処理エラー: {e}")
 
         elif action == "like_post":
-            existing_posts = get_posts()  # 修正：get_posts関数を使用
+            print("👍 ポストにいいねをします。")
+            existing_posts = get_posts()
             
             if existing_posts and isinstance(existing_posts, list) and len(existing_posts) > 0:
                 try:
-                    # ポストに"id"キーがあるか確認
-                    if "id" in existing_posts[0]:
-                        post_id = random.choice(existing_posts)["id"]
+                    post = random.choice(existing_posts)
+                    if "id" in post:
+                        post_id = post["id"]
                         like_post(post_id)
                     else:
-                        print("⚠️ ポストの形式が不正です。'id'フィールドがありません。")
+                        print("⚠️ ポストの形式が不正です。'id' フィールドがありません。")
                 except (IndexError, KeyError) as e:
                     print(f"⚠️ ポストデータ処理エラー: {e}")
             else:
@@ -231,6 +249,7 @@ def bot_action():
         sleep_time = random.randint(10, 60)  # 10秒〜60秒の間でランダム
         print(f"⏳ 次のアクションまで {sleep_time} 秒待機")
         time.sleep(sleep_time)
+
 
 
 if __name__ == "__main__":

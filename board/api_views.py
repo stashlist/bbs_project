@@ -4,6 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from .models import Thread, Post, Tag
 import json
+from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.generic.edit import CreateView
+
 
 @csrf_exempt
 def api_login(request):
@@ -22,41 +26,33 @@ def api_login(request):
     return JsonResponse({"error": "POST メソッドのみ対応"}, status=405)
 
 
-@login_required
-@csrf_exempt
-def create_thread(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
+@method_decorator(csrf_exempt, name='dispatch')
+class ThreadListCreateView(CreateView):
+    """スレッド作成・取得 API"""
+    model = Thread
+    fields = ["title"]
 
-            title = data.get("title")
-            first_post_content = data.get("first_post")
-            tag_id = data.get("tag_id")  # タグの ID を取得
+    def post(self, request, *args, **kwargs):
+        data = json.loads(request.body)
+        title = data.get("title")
+        first_post_content = data.get("first_post")
+        tag_id = data.get("tag_id")
 
-            if not title or not first_post_content:
-                return JsonResponse({"error": "タイトルと内容は必須"}, status=400)
+        if not title or not first_post_content:
+            return JsonResponse({"error": "タイトルと内容は必須"}, status=400)
 
-            # タグが指定されていない場合、デフォルトを設定
-            if not tag_id:
-                default_tag = Tag.objects.first()  # 最初のタグをデフォルトにする
-                tag_id = default_tag.id if default_tag else None
+        # タグの処理
+        tag = get_object_or_404(Tag, id=tag_id) if tag_id else Tag.objects.first()
+        
+        # スレッド作成
+        thread = Thread.objects.create(title=title)
+        if tag:
+            thread.tags.add(tag)
 
-            # スレッドを作成
-            thread = Thread.objects.create(title=title)
-            
-            # タグを設定
-            if tag_id:
-                thread.tags.add(tag_id)
+        # 最初の投稿を作成
+        Post.objects.create(thread=thread, user=request.user, content=first_post_content)
 
-            # 最初の投稿を作成
-            Post.objects.create(thread=thread, user=request.user, content=first_post_content)
-
-            return JsonResponse({"thread_id": thread.id}, status=201)
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "POST メソッドのみ対応"}, status=400)
+        return JsonResponse({"thread_id": thread.id, "title": thread.title}, status=201)
 
 
 @csrf_exempt

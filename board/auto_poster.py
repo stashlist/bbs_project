@@ -1,24 +1,22 @@
-import openai
 import requests
 import random
 import time
 import os
-from django.contrib.auth import authenticate
 
-# ✅ OpenAI API キー設定
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# ✅ Django のエンドポイント設定（変更する）
+# ✅ Django のエンドポイント設定
 BASE_URL = "https://bbs-project.onrender.com"
 LOGIN_URL = f"{BASE_URL}/api/login/"
 POST_URL = f"{BASE_URL}/api/posts/"
 THREAD_URL = f"{BASE_URL}/api/threads/"
-LIKE_URL = f"{BASE_URL}/api/posts/{'{post_id}'}/like/"
-REPLY_URL = f"{BASE_URL}/api/posts/{'{post_id}'}/reply/"
+LIKE_URL = f"{BASE_URL}/api/posts/{{post_id}}/like/"
+REPLY_URL = f"{BASE_URL}/api/posts/{{post_id}}/reply/"
 
-# ✅ 自動ログイン情報（Bot 用のユーザーを作る）
+# ✅ 自動ログイン情報
 BOT_USERNAME = "bot_user"
 BOT_PASSWORD = "password123"
+
+# ✅ Ollama のエンドポイント
+OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
 # ✅ セッション維持
 session = requests.Session()
@@ -26,16 +24,22 @@ session = requests.Session()
 def login():
     """Bot ログイン"""
     data = {"username": BOT_USERNAME, "password": BOT_PASSWORD}
-    response = session.post(LOGIN_URL, data=data)
+    response = session.post(LOGIN_URL, json=data)
     return response.status_code == 200
 
 def generate_text(prompt):
-    """ChatGPT で投稿内容を生成"""
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "system", "content": prompt}]
-    )
-    return response["choices"][0]["message"]["content"].strip()
+    """Ollama を使って投稿内容を生成"""
+    data = {
+        "model": "gemma:2b",  # Ollama で使用するモデル
+        "prompt": prompt
+    }
+    response = requests.post(OLLAMA_URL, json=data)
+    
+    if response.status_code == 200:
+        return response.json().get("response", "").strip()
+    else:
+        print("❌ Ollama でのテキスト生成失敗")
+        return "ランダムな投稿"
 
 def post_thread():
     """新しいスレッドを立てる"""
@@ -87,14 +91,14 @@ def run_bot():
                 post_reply(thread_id)
 
         elif action == "post_reply":
-            thread_id = random.randint(1, 10)  # 適当に既存スレッドを選ぶ
+            thread_id = random.randint(1, 10)
             post_reply(thread_id)
 
         elif action == "like":
-            post_id = random.randint(1, 50)  # 適当に既存のポストを選ぶ
+            post_id = random.randint(1, 50)
             like_post(post_id)
 
-        time.sleep(random.randint(60, 300))  # 次のアクションまでの時間をランダムに設定
+        time.sleep(random.randint(60, 300))
 
 if __name__ == "__main__":
     run_bot()

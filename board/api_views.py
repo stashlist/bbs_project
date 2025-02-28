@@ -2,7 +2,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .models import Thread, Post
+from .models import Thread, Post, Tag
 import json
 
 @csrf_exempt
@@ -21,25 +21,42 @@ def api_login(request):
 
     return JsonResponse({"error": "POST メソッドのみ対応"}, status=405)
 
-@csrf_exempt
+
 @login_required
 @csrf_exempt
 def create_thread(request):
-    """スレッド作成 API"""
     if request.method == "POST":
-        data = json.loads(request.body)
-        title = data.get("title")
-        first_post_content = data.get("first_post")  # `content` ではなく `first_post` に変更
+        try:
+            data = json.loads(request.body)
 
-        if not title or not first_post_content:
-            return JsonResponse({"error": "タイトルと最初の投稿内容は必須"}, status=400)
+            title = data.get("title")
+            first_post_content = data.get("first_post")
+            tag_id = data.get("tag_id")  # タグの ID を取得
 
-        thread = Thread.objects.create(title=title, creator=request.user)
-        Post.objects.create(thread=thread, user=request.user, content=first_post_content)
+            if not title or not first_post_content:
+                return JsonResponse({"error": "タイトルと内容は必須"}, status=400)
 
-        return JsonResponse({"message": "スレッド作成成功", "id": thread.id}, status=201)
+            # タグが指定されていない場合、デフォルトを設定
+            if not tag_id:
+                default_tag = Tag.objects.first()  # 最初のタグをデフォルトにする
+                tag_id = default_tag.id if default_tag else None
 
-    return JsonResponse({"error": "POST メソッドのみ対応"}, status=405)
+            # スレッドを作成
+            thread = Thread.objects.create(title=title)
+            
+            # タグを設定
+            if tag_id:
+                thread.tags.add(tag_id)
+
+            # 最初の投稿を作成
+            Post.objects.create(thread=thread, user=request.user, content=first_post_content)
+
+            return JsonResponse({"thread_id": thread.id}, status=201)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "POST メソッドのみ対応"}, status=400)
 
 
 @csrf_exempt

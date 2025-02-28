@@ -1,12 +1,6 @@
 import requests
 import random
 import time
-from django.views import View
-import json
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from board.models import Thread, Post, Tag
 
 # API のエンドポイント
 BASE_URL = "https://bbs-project.onrender.com/api/"
@@ -18,34 +12,7 @@ BOT_PASSWORD = "bot_password"
 # Bot のセッション
 session = requests.Session()
 
-@method_decorator(csrf_exempt, name='dispatch')
-class ThreadListCreateView(View):
-    """スレッド作成・取得 API"""
 
-    def get(self, request):
-        """スレッド一覧を取得"""
-        threads = Thread.objects.all().values("id", "title", "created_at")
-        return JsonResponse(list(threads), safe=False)
-
-    def post(self, request):
-        """スレッドを作成"""
-        data = json.loads(request.body)
-        title = data.get("title")
-        first_post_content = data.get("first_post")
-        tag_id = data.get("tag_id")
-
-        if not title or not first_post_content:
-            return JsonResponse({"error": "タイトルと内容は必須"}, status=400)
-
-        tag = Tag.objects.filter(id=tag_id).first() if tag_id else Tag.objects.first()
-
-        thread = Thread.objects.create(title=title)
-        if tag:
-            thread.tags.add(tag)
-
-        post = Post.objects.create(thread=thread, user=request.user, content=first_post_content)
-
-        return JsonResponse({"id": thread.id, "title": thread.title}, status=201)
 
 def login():
     """Bot をログインさせる"""
@@ -60,7 +27,7 @@ def login():
 
 
 def create_post(thread_id, content):
-    """スレッドに投稿する"""
+    """スレッドに投稿を作成"""
     payload = {"content": content}
     response = session.post(f"{BASE_URL}threads/{thread_id}/posts/", json=payload)
 

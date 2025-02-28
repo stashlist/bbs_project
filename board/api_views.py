@@ -26,33 +26,41 @@ def api_login(request):
     return JsonResponse({"error": "POST メソッドのみ対応"}, status=405)
 
 
-@method_decorator(csrf_exempt, name='dispatch')
-class ThreadListCreateView(CreateView):
+@method_decorator(csrf_exempt, name="dispatch")
+class ThreadListCreateView(APIView):
     """スレッド作成・取得 API"""
-    model = Thread
-    fields = ["title"]
+    renderer_classes = [JSONRenderer]  # ✅ API なので JSON のみ返す
 
     def post(self, request, *args, **kwargs):
-        data = json.loads(request.body)
-        title = data.get("title")
-        first_post_content = data.get("first_post")
-        tag_id = data.get("tag_id")
+        try:
+            data = json.loads(request.body)
+            title = data.get("title")
+            first_post_content = data.get("first_post")
+            tag_id = data.get("tag_id")
 
-        if not title or not first_post_content:
-            return JsonResponse({"error": "タイトルと内容は必須"}, status=400)
+            if not title or not first_post_content:
+                return JsonResponse({"error": "タイトルと内容は必須"}, status=400)
 
-        # タグの処理
-        tag = get_object_or_404(Tag, id=tag_id) if tag_id else Tag.objects.first()
+            # **タグの処理**
+            tag = get_object_or_404(Tag, id=tag_id) if tag_id else Tag.objects.first()
+
+            # **ユーザーを取得**
+            user = request.user
+            if isinstance(user, AnonymousUser):  # **ログインしていない場合はエラー**
+                return JsonResponse({"error": "認証が必要です"}, status=403)
+
+            # **スレッド作成**
+            thread = Thread.objects.create(title=title)
+            if tag:
+                thread.tags.add(tag)
+
+            # **最初の投稿を作成**
+            Post.objects.create(thread=thread, user=user, content=first_post_content)
+
+            return JsonResponse({"thread_id": thread.id, "title": thread.title}, status=201)
         
-        # スレッド作成
-        thread = Thread.objects.create(title=title)
-        if tag:
-            thread.tags.add(tag)
-
-        # 最初の投稿を作成
-        Post.objects.create(thread=thread, user=request.user, content=first_post_content)
-
-        return JsonResponse({"thread_id": thread.id, "title": thread.title}, status=201)
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "無効な JSON データ"}, status=400)
 
 
 @csrf_exempt

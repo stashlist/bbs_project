@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from . import views
 from django.conf import settings
@@ -35,6 +35,7 @@ urlpatterns = [
     path("code_auth/", views.code_auth, name="code_auth"),
     path("resend_verification_code/<int:user_id>/", views.resend_verification_code, name="resend_verification_code"),
     path("post/<int:post_id>/like/", views.toggle_like, name="toggle_like"),
+    path("api/", include("board.api_urls")),
 ]
 
 if settings.DEBUG:

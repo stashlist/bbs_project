@@ -1,3 +1,6 @@
+"""
+Django settings for bbs_project project.
+"""
 
 import os
 import dj_database_url
@@ -125,15 +128,3 @@ USE_L10N = True
 
 # デフォルトのプライマリキー
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# メール設定（Gmail を使用する場合）
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "sandbox.smtp.mailtrap.io"  # `Mailtrap` のホスト
-EMAIL_PORT = 2525  # `Mailtrap` の推奨ポート
-EMAIL_USE_TLS = True  # `STARTTLS` を使用
-EMAIL_USE_SSL = False  # `SSL` は不要
-EMAIL_HOST_USER = "ab8b8bc1d1813b"  # `Mailtrap` のユーザー名
-EMAIL_HOST_PASSWORD = "f5143d9b3e254b"  # `Mailtrap` のパスワード
-DEFAULT_FROM_EMAIL = "noreply@example.com"  # 送信元メールアドレス
-
-

@@ -23,20 +23,24 @@ def api_login(request):
 
 @csrf_exempt
 @login_required
+@csrf_exempt
 def create_thread(request):
     """スレッド作成 API"""
     if request.method == "POST":
         data = json.loads(request.body)
         title = data.get("title")
-        content = data.get("content")
+        first_post_content = data.get("first_post")  # `content` ではなく `first_post` に変更
 
-        if not title or not content:
-            return JsonResponse({"error": "タイトルと内容は必須"}, status=400)
+        if not title or not first_post_content:
+            return JsonResponse({"error": "タイトルと最初の投稿内容は必須"}, status=400)
 
         thread = Thread.objects.create(title=title, creator=request.user)
+        Post.objects.create(thread=thread, user=request.user, content=first_post_content)
+
         return JsonResponse({"message": "スレッド作成成功", "id": thread.id}, status=201)
 
     return JsonResponse({"error": "POST メソッドのみ対応"}, status=405)
+
 
 @csrf_exempt
 @login_required
